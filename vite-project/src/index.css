@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  background: #050505;
+  font-family: Inter, sans-serif;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.room-shell {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+}
+
+.room-header {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 92px !important;
+}
+
+.room-footer {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  min-height: 112px !important;
+}
+
+.typing-strip {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 112px !important;
+}
+
+.room-scroll {
+  position: fixed !important;
+  top: 92px !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 112px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}

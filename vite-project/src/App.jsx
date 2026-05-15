@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 import Register from "./register";
 import Login from "./login";
 import Home from "./home";
-import VideoCallLandingPage from "./landingpage";
+import VideoCallLandingPage from "./LandingPage";
 import Code from "./code";
 import Room from "./Room";
 import ProtectedRoute from "./protectedRoute";

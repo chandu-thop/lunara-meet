@@ -22,7 +22,7 @@ const allowedOrigins =
    (
       process.env.CLIENT_URLS ||
       process.env.CLIENT_URL ||
-      https//lunara-meet.vercel.app
+      "https//lunara-meet.vercel.app"
    )
    .split(",")
    .map((origin)=>origin.trim())

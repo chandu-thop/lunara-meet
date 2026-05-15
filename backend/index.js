@@ -31,8 +31,8 @@ const allowedOrigins =
 
 app.use(cors({
 
-   origin:
-   allowedOrigins,
+   origin:"https//lunara-meet.vercel.app",
+   
 
    credentials:true
 

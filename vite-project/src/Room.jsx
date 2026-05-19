@@ -13,23 +13,23 @@ const rtcConfig = {
     },
     {
       urls: "turn:global.relay.metered.ca:80",
-      username: "openrelayproject",
-      credential: "openrelayproject",
+      username: "48637ebcdf1c95eb5432b1c2",
+      credential: "Fat5YDzOyJZs9DBj",
     },
     {
       urls: "turn:global.relay.metered.ca:80?transport=tcp",
-      username: "openrelayproject",
-      credential: "openrelayproject",
+      username: "48637ebcdf1c95eb5432b1c2",
+      credential: "Fat5YDzOyJZs9DBj",
     },
     {
       urls: "turn:global.relay.metered.ca:443",
-      username: "openrelayproject",
-      credential: "openrelayproject",
+      username: "48637ebcdf1c95eb5432b1c2",
+      credential: "Fat5YDzOyJZs9DBj",
     },
     {
       urls: "turns:global.relay.metered.ca:443?transport=tcp",
-      username: "openrelayproject",
-      credential: "openrelayproject",
+      username: "48637ebcdf1c95eb5432b1c2",
+      credential: "Fat5YDzOyJZs9DBj",
     },
   ],
 };
@@ -266,6 +266,9 @@ const socket = socketRef.current;
       attachPeerHandlers(peer);
       peer.oniceconnectionstatechange = () => {
   console.log("ICE STATE:", peer.iceConnectionState);
+};
+peer.onconnectionstatechange = () => {
+  console.log("PEER STATE:", peer.connectionState);
 };
       stream.getTracks().forEach((track) => {
         peer.addTrack(track, stream);

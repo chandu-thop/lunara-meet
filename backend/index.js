@@ -18,25 +18,25 @@ const userRoutes=require("./src/routes/users.routes.js");
 const upload=require("./config/multer.js");
 const { Socket } = require("dgram");
 const PORT=process.env.PORT || 8081;
-const allowedOrigins =
-   (
-      process.env.CLIENT_URLS ||
-      process.env.CLIENT_URL ||
-      "https://lunara-meet.vercel.app"
-   )
-   .split(",")
-   .map((origin)=>origin.trim())
-   .filter(Boolean);
+   const allowedOrigins =
+      (
+         process.env.CLIENT_URLS ||
+         process.env.CLIENT_URL ||
+         "https://lunara-meet.vercel.app,http://localhost:5173"
+      )
+      .split(",")
+      .map((origin)=>origin.trim())
+      .filter(Boolean);
 
 
-app.use(cors({
+   app.use(cors({
 
-   origin:allowedOrigins,
-   
+      origin:allowedOrigins,
+      
 
-   credentials:true
+      credentials:true
 
-}));
+   }));
 app.use(express.json({limit:"40kb"}));
 app.use(express.urlencoded({limit:"40kb",extended:true}));
 app.use("/api/v1/users",userRoutes);
@@ -363,14 +363,18 @@ socket.on(
 
 });
 
-mongoose.connect( process.env.MONGO_URI)
-.then(() => {
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
     console.log("MongoDB Connected");
-})
-.catch((err) => {
-    console.log(err);
-});
 
+    server.listen(PORT, () => {
+      console.log(`server is listening on the port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.log(err);
+  });
 
 
 
@@ -382,7 +386,4 @@ app.get("/",(req,res)=>{
   res.send("this is home");
 });
 
-server.listen(PORT,()=>{
-    console.log(`server is listening on the port ${PORT}`);
 
-});

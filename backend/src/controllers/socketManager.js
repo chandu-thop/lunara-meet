@@ -5,7 +5,7 @@ function connectToServer(server){
       (
          process.env.CLIENT_URLS ||
          process.env.CLIENT_URL ||
-          "https://lunara-meet.vercel.app"
+          "https://lunara-meet.vercel.app,http://localhost:5173"
       )
       .split(",")
       .map((origin)=>origin.trim())
@@ -14,7 +14,8 @@ function connectToServer(server){
    const io = new Server(server,{
       cors:{
          origin:allowedOrigins,
-         methods:["GET","POST"]
+         methods:["GET","POST"],
+         credentials:true
       }
    });
 

@@ -4,6 +4,7 @@ import axios from "axios";
 import { createUserSocket } from "./socket";
 import { Phone, PhoneOff } from "lucide-react";
 import { API_URL } from "./config";
+import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 
 const rtcConfig = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -98,6 +99,8 @@ export default function Room() {
   const pendingOfferRef = useRef(null);
   const iceCandidateBufferRef = useRef([]);
   const awaitingAnswerRef = useRef(false);
+  const [micOn, setMicOn] = useState(true);
+const [cameraOn, setCameraOn] = useState(true);
   const ringtoneRef = useRef({
     audioContext: null,
     intervalId: null,
@@ -266,6 +269,8 @@ const socket = socketRef.current;
     remoteMediaStreamRef.current = null;
     setCallPhase("none");
     setCallOverlayOpen(false);
+    setMicOn(true);
+setCameraOn(true);
   }, []);
 
   const hangUp = useCallback(() => {
@@ -275,6 +280,28 @@ const socket = socketRef.current;
 
     cleanupCall();
   }, [callPhase, cleanupCall, roomId, socket]);
+
+  const toggleMic = () => {
+  if (!streamRef.current) return;
+
+  const audioTrack = streamRef.current.getAudioTracks()[0];
+
+  if (audioTrack) {
+    audioTrack.enabled = !audioTrack.enabled;
+    setMicOn(audioTrack.enabled);
+  }
+};
+
+const toggleCamera = () => {
+  if (!streamRef.current) return;
+
+  const videoTrack = streamRef.current.getVideoTracks()[0];
+
+  if (videoTrack) {
+    videoTrack.enabled = !videoTrack.enabled;
+    setCameraOn(videoTrack.enabled);
+  }
+};
 
   const handleRemoteIce = useCallback(
     async (candidate) => {
@@ -804,7 +831,7 @@ if (!username) return null;
 
 
   return (
-    <div className="room-shell bg-[#050505] text-white relative min-h-screen">
+    <div className="room-shell bg-[#050505] text-white relative min-h-screen overflow-hidden flex flex-col">
       {callOverlayOpen && (
         <div className="fixed inset-0 z-[200] flex flex-col bg-black">
           <div className="relative flex-1 min-h-0">
@@ -831,7 +858,7 @@ if (!username) return null;
                 autoPlay
                 playsInline
                 muted
-                className="absolute bottom-6 right-6 z-10 h-36 w-28 sm:h-44 sm:w-36 rounded-2xl object-cover border border-white/20 shadow-2xl"
+                className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 z-10 h-24 w-20 sm:h-36 sm:w-28 lg:h-44 lg:w-36 rounded-2xl object-cover border border-white/20 shadow-2xl"
               />
             )}
             {callPhase === "incoming" && (
@@ -842,18 +869,18 @@ if (!username) return null;
                 <p className="text-2xl font-light text-white/90 mb-10">
                   Video call in this room
                 </p>
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xs">
                   <button
                     type="button"
                     onClick={acceptIncomingCall}
-                    className="rounded-full bg-emerald-500 px-10 py-4 text-sm font-medium tracking-wide text-black hover:bg-emerald-400 transition"
+                    className="rounded-full bg-emerald-500 w-full px-6 sm:px-10 py-3 sm:py-4 text-sm font-medium tracking-wide text-black hover:bg-emerald-400 transition"
                   >
                     Accept
                   </button>
                   <button
                     type="button"
                     onClick={declineIncomingCall}
-                    className="rounded-full border border-white/20 bg-white/5 px-10 py-4 text-sm text-white/80 hover:bg-white/10 transition"
+                    className="rounded-full border border-white/20 bg-white/5 w-full px-6 sm:px-10 py-3 sm:py-4 text-sm text-white/80 hover:bg-white/10 transition"
                   >
                     Decline
                   </button>
@@ -872,14 +899,40 @@ if (!username) return null;
             )}
           </div>
           <div className="shrink-0 flex items-center justify-center gap-6 border-t border-white/10 bg-black/80 py-6">
+            {/* Mic Toggle */}
+              <button
+             type="button"
+               onClick={toggleMic}
+                className={`flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full text-white transition ${
+               micOn
+                 ? "bg-white/10 hover:bg-white/20"
+                   : "bg-yellow-500/90 hover:bg-yellow-500"
+                  }`}
+                         title={micOn ? "Mute microphone" : "Unmute microphone"}
+                            >
+           {micOn ? <Mic size={26} /> : <MicOff size={26} />}
+  </button>
             <button
               type="button"
               onClick={hangUp}
-              className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/90 text-white hover:bg-red-500 transition"
+              className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-red-500/90 text-white hover:bg-red-500 transition"
               title="End call"
             >
               <PhoneOff size={26} />
             </button>
+              {/* Camera Toggle */}
+  <button
+    type="button"
+    onClick={toggleCamera}
+    className={`flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full text-white transition ${
+      cameraOn
+        ? "bg-white/10 hover:bg-white/20"
+        : "bg-yellow-500/90 hover:bg-yellow-500"
+    }`}
+    title={cameraOn ? "Turn off camera" : "Turn on camera"}
+  >
+    {cameraOn ? <Video size={26} /> : <VideoOff size={26} />}
+  </button>
           </div>
         </div>
       )}
@@ -887,7 +940,7 @@ if (!username) return null;
       <div className="absolute top-[-200px] left-[-100px] w-[500px] h-[500px] bg-white/5 blur-3xl rounded-full" />
       <div className="absolute bottom-[-250px] right-[-120px] w-[650px] h-[650px] bg-[#334155]/20 blur-3xl rounded-full" />
 
-      <div className="room-header z-20 flex items-center justify-between gap-4 px-8 border-b border-white/10 backdrop-blur-xl bg-black/40">
+      <div className="room-header z-20 flex flex-col lg:flex-row items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 py-4 border-b border-white/10 backdrop-blur-xl bg-black/40">
         <div className="flex items-center gap-3">
           <div className="w-2 h-8 rounded-full bg-white" />
           <h1 className="text-2xl tracking-[0.2em] font-light text-white/90">
@@ -895,7 +948,7 @@ if (!username) return null;
           </h1>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
           <div className="text-right">
             <p className="text-xs tracking-[0.2em] text-white/30 uppercase mb-1">
               Room ID
@@ -933,12 +986,12 @@ if (!username) return null;
         </div>
       </div>
 
-      <div className="
+<div className="
    grid
    grid-cols-1
-   md:grid-cols-2
-   gap-6
-   p-6
+   lg:grid-cols-2
+   gap-4 sm:gap-6
+   p-4 sm:p-6
    relative
    z-10
 ">
@@ -959,7 +1012,7 @@ if (!username) return null;
          muted
          className="
             w-full
-            h-[300px]
+            h-[220px] sm:h-[300px]
             object-cover
          "
       />
@@ -968,7 +1021,7 @@ if (!username) return null;
 
       <div className="
          w-full
-         h-[300px]
+         h-[220px] sm:h-[300px]
          flex
          items-center
          justify-center
@@ -998,7 +1051,7 @@ if (!username) return null;
          playsInline
          className="
             w-full
-            h-[300px]
+           h-[220px] sm:h-[300px]
             object-cover
          "
       />
@@ -1007,7 +1060,7 @@ if (!username) return null;
 
       <div className="
          w-full
-         h-[300px]
+         h-[220px] sm:h-[300px]
          flex
          items-center
          justify-center
@@ -1022,8 +1075,8 @@ if (!username) return null;
 </div>
       </div>
 
-      <main className="room-scroll z-10">
-        <div className="flex min-h-full flex-col justify-end px-6 py-8">
+      <main className="room-scroll z-10 flex-1 overflow-y-auto min-h-0">
+        <div className="flex flex-col px-3 sm:px-6 py-6 sm:py-8 gap-4">
           {socketError && (
             <div className="flex justify-center mb-4">
               <p className="text-red-300 text-sm bg-red-500/10 border border-red-400/20 px-4 py-2 rounded-full">
@@ -1051,7 +1104,7 @@ if (!username) return null;
         mine ? "justify-end" : "justify-start"
       }`}
     >
-      <div className="relative group max-w-[70%]">
+     <div className="relative group max-w-[90%] sm:max-w-[75%] lg:max-w-[70%]">
 
         {mine && (
           <button
@@ -1106,7 +1159,7 @@ if (!username) return null;
       </main>
 
       {typing && (
-        <div className="typing-strip z-10 px-8 pb-2">
+        <div className="typing-strip z-10 px-4 sm:px-8 pb-2">
           <div className="inline-flex items-center gap-3 bg-white/[0.03] border border-white/10 backdrop-blur-xl px-4 py-2 rounded-full shadow-[0_0_30px_rgba(255,255,255,0.02)]">
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce" />
@@ -1120,13 +1173,13 @@ if (!username) return null;
         </div>
       )}
 
-      <div className="room-footer z-20 border-t border-white/10 bg-black/50 backdrop-blur-xl px-6 py-4">
+      <div className="room-footer z-20 border-t border-white/10 bg-black/50 backdrop-blur-xl px-3 sm:px-6 py-3 sm:py-4">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             sendMessage();
           }}
-          className="flex w-full items-center gap-4"
+         className="flex w-full items-center gap-2 sm:gap-4"
         >
           <input
             ref={fileInputRef}
@@ -1139,7 +1192,7 @@ if (!username) return null;
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadingImage}
-            className="shrink-0 w-14 h-14 rounded-full bg-white/10 border border-white/10 text-2xl leading-none text-white/90 hover:bg-white/15 transition duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 border border-white/10 text-2xl leading-none text-white/90 hover:bg-white/15 transition duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
             title="Share image"
           >
             {uploadingImage ? "..." : "+"}
@@ -1152,11 +1205,11 @@ if (!username) return null;
             value={message}
             onChange={handleMessageChange}
             placeholder="Type your message..."
-            className="min-w-0 flex-1 bg-white/[0.03] border border-white/10 rounded-[24px] px-6 py-4 text-white placeholder:text-white/25 outline-none focus:border-white/20 backdrop-blur-xl"
+            className="min-w-0 flex-1 bg-white/[0.03] border border-white/10 rounded-[24px] px-4 sm:px-6 py-3 sm:py-4 text-white placeholder:text-white/25 outline-none focus:border-white/20 backdrop-blur-xl"
           />
           <button
             type="submit"
-            className="shrink-0 px-10 py-4 rounded-[24px] bg-white/10 border border-white/10 text-white/90 hover:bg-white/15 transition duration-300"
+            className="shrink-0 px-5 sm:px-10 py-3 sm:py-4 rounded-[24px] bg-white/10 border border-white/10 text-white/90 hover:bg-white/15 transition duration-300"
           >
             Send
           </button>

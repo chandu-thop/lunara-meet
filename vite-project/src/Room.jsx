@@ -7,7 +7,31 @@ import { API_URL } from "./config";
 import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 
 const rtcConfig = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+  iceServers: [
+    {
+      urls: "stun:stun.relay.metered.ca:80",
+    },
+    {
+      urls: "turn:global.relay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:global.relay.metered.ca:80?transport=tcp",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:global.relay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turns:global.relay.metered.ca:443?transport=tcp",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+  ],
 };
 
 /** Stable string id for comparing JWT user, Mongo userId, etc. */
@@ -234,9 +258,15 @@ const socket = socketRef.current;
         peerRef.current.close();
         peerRef.current = null;
       }
-      const peer = new RTCPeerConnection(rtcConfig);
+      const peer = new RTCPeerConnection({
+  ...rtcConfig,
+  iceCandidatePoolSize: 10,
+});
       peerRef.current = peer;
       attachPeerHandlers(peer);
+      peer.oniceconnectionstatechange = () => {
+  console.log("ICE STATE:", peer.iceConnectionState);
+};
       stream.getTracks().forEach((track) => {
         peer.addTrack(track, stream);
       });

@@ -6,6 +6,7 @@ import { API_URL } from "./config";
 export default function Register() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const [user, setUser] = useState({
     name: "",
@@ -14,6 +15,7 @@ export default function Register() {
   });
 
   function handleChange(e) {
+    setError("");
     setUser({
       ...user,
       [e.target.name]: e.target.value,
@@ -21,11 +23,26 @@ export default function Register() {
   }
 async function handleSubmit(e) {
   e.preventDefault();
+  if (submitting) return;
+  setError("");
+
+  const name = user.name.trim();
+  const username = user.username.trim();
+  if (!name || !username || !user.password.trim()) {
+    setError("Please fill in all fields.");
+    return;
+  }
+  if (user.password.length < 8) {
+    setError("Password must be at least 8 characters.");
+    return;
+  }
 
   try {
+    setSubmitting(true);
     await axios.post(
       `${API_URL}/api/v1/users/register`,
-      user
+      { name, username, password: user.password },
+      { timeout: 15000 }
     );
 
     navigate("/login");
@@ -33,10 +50,18 @@ async function handleSubmit(e) {
   } catch (err) {
 
     if (err.response?.status === 409) {
-      setError("User already exists");
+      setError(err.response.data?.message || "That username is already taken. Please choose another.");
+    } else if (err.response?.data?.message) {
+      setError(err.response.data.message);
+    } else if (err.code === "ECONNABORTED") {
+      setError("The server took too long to respond. Please try again.");
+    } else if (!err.response) {
+      setError(`Could not reach the server at ${API_URL}. Check the API URL and try again.`);
     } else {
-      setError("Something went wrong");
+      setError("We couldn't create your account. Please try again.");
     }
+  } finally {
+    setSubmitting(false);
   }
 }
 
@@ -87,6 +112,8 @@ async function handleSubmit(e) {
             placeholder="Full Name"
             value={user.name}
             onChange={handleChange}
+            autoComplete="name"
+            required
             className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-5 py-4 text-white placeholder:text-white/30 outline-none focus:border-white/20 transition"
           />
 
@@ -96,6 +123,8 @@ async function handleSubmit(e) {
             placeholder="Username"
             value={user.username}
             onChange={handleChange}
+            autoComplete="username"
+            required
             className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-5 py-4 text-white placeholder:text-white/30 outline-none focus:border-white/20 transition"
           />
 
@@ -105,6 +134,9 @@ async function handleSubmit(e) {
             placeholder="Password"
             value={user.password}
             onChange={handleChange}
+            autoComplete="new-password"
+            minLength={8}
+            required
             className="w-full bg-white/[0.04] border border-white/10 rounded-2xl px-5 py-4 text-white placeholder:text-white/30 outline-none focus:border-white/20 transition"
           />
           {
@@ -119,7 +151,7 @@ async function handleSubmit(e) {
             type="submit"
             className="w-full py-4 rounded-2xl bg-white/10 border border-white/10 text-white font-light text-lg hover:bg-white/15 transition duration-300 shadow-[0_0_40px_rgba(255,255,255,0.05)]"
           >
-            Create Account
+            {submitting ? "Creating account…" : "Create Account"}
           </button>
         </form>
 

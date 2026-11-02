@@ -42,25 +42,28 @@ function authMiddleware(req, res, next) {
 const register=async (req,res)=>{
     try{
         let {name,username,password}=req.body;
-    if(!name||!username||!password){
-        return res.status(400).json({message:`all feilds required`});
-    }
-    const p=await bcrypt.hash(password,10);
-    let user=await User.findOne({username});
-    if(user){
-        return res.status(StatusCodes.CONFLICT).json({message:"User Already Exits"});
-    }
-   
-   await User.create({
-        name:name,
-        username:username,
-        password:p,
-        
+        name = typeof name === "string" ? name.trim() : "";
+        username = typeof username === "string" ? username.trim().toLowerCase() : "";
+        password = typeof password === "string" ? password : "";
 
-    });
-    return res.status(StatusCodes.CREATED).json({message:`Created Succesfully`});
+        if(!name || !username || !password.trim()){
+            return res.status(StatusCodes.BAD_REQUEST).json({message:"Name, username, and password are required"});
+        }
+
+        if (password.length < 8) {
+            return res.status(StatusCodes.BAD_REQUEST).json({message:"Password must be at least 8 characters"});
+        }
+
+        const p=await bcrypt.hash(password,10);
+        await User.create({name, username, password:p});
+        return res.status(StatusCodes.CREATED).json({message:"Account created successfully"});
 
     }catch(err){
+        // MongoDB's unique index is the final authority when simultaneous
+        // requests try to create the same username.
+        if (err.code === 11000) {
+            return res.status(StatusCodes.CONFLICT).json({message:"Username is already taken"});
+        }
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({message:err.message});
     }
     
@@ -71,6 +74,7 @@ const register=async (req,res)=>{
 const login = async (req, res) => {
     try {
         let { username, password } = req.body;
+        username = typeof username === "string" ? username.trim().toLowerCase() : "";
 
         if (!username || !password) {
             return res.status(400).json({

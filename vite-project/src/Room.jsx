@@ -80,36 +80,15 @@ function getCurrentUserIdForChat() {
  * YOU (sender) → RIGHT (`justify-end`). Others → LEFT (`justify-start`).
  * Match by author id and/or username (server sets username from the authenticated user).
  */
-function messageIsMine(msg){
+function messageIsMine(msg) {
+  if (!msg || msg.system) return false;
+  const currentUserId = getCurrentUserIdForChat();
+  const authorId = messageAuthorId(msg).toLowerCase();
+  if (currentUserId && authorId) return currentUserId === authorId;
 
-   if(
-      !msg ||
-      msg.system
-   ){
-      return false;
-   }
-
-   const currentUsername =
-   (
-      sessionStorage.getItem(
-         "username"
-      ) || ""
-   )
-   .trim()
-   .toLowerCase();
-
-   const senderUsername =
-   (
-      msg.username || ""
-   )
-   .trim()
-   .toLowerCase();
-
-   return (
-      currentUsername ===
-      senderUsername
-   );
-
+  const currentUsername = (sessionStorage.getItem("username") || "").trim().toLowerCase();
+  const senderUsername = (msg.username || "").trim().toLowerCase();
+  return Boolean(currentUsername && senderUsername && currentUsername === senderUsername);
 }
 export default function Room() {
   const { id, roomId: roomIdParam } = useParams();
@@ -282,8 +261,8 @@ peer.onconnectionstatechange = () => {
     if (!peerRef.current) return;
     const offer = await peerRef.current.createOffer();
     await peerRef.current.setLocalDescription(offer);
-    socket.emit("offer", offer);
-  }, [socket]);
+    socket.emit("offer", { room: roomId, description: offer });
+  }, [roomId, socket]);
 
   const cleanupCall = useCallback(() => {
     awaitingAnswerRef.current = false;
@@ -358,17 +337,19 @@ const toggleCamera = () => {
 
   useEffect(() => {
     const onOffer = async (offer) => {
-      pendingOfferRef.current = offer;
+      if (callPhase !== "none") return;
+      pendingOfferRef.current = offer.description || offer;
       setCallPhase("incoming");
       setCallOverlayOpen(true);
     };
     socket.on("offer", onOffer);
     return () => socket.off("offer", onOffer);
-  }, []);
+  }, [callPhase, socket]);
 
   useEffect(() => {
-    const onAnswer = async (answer) => {
+    const onAnswer = async (answerPayload) => {
       if (!peerRef.current) return;
+      const answer = answerPayload.description || answerPayload;
       await peerRef.current.setRemoteDescription(answer);
       awaitingAnswerRef.current = false;
       setCallPhase("connected");
@@ -440,41 +421,16 @@ const toggleCamera = () => {
     joined.current = false;
   }, [roomId]);
 
-  // Join Room
-useEffect(() => {
-
-   if(!username) return;
-
-   socketRef.current.auth = {
-      token: localStorage.getItem("token"),
-   };
-
-   socketRef.current.connect();
-
-   socketRef.current.emit(
-
-      "join-room",
-
-      {
-         room: roomId,
-
-         username,
-      }
-
-   );
-
-   return ()=>{
-
-      socketRef.current.disconnect();
-
-   };
-
-}, [roomId, username]);
-
   useEffect(() => {
-    const onConnect = () => {
+    const onJoinRoom = () => {
+      joined.current = true;
       setSocketError("");
       socket.emit("get-old-messages", roomId);
+    };
+    const onConnect = () => {
+      setSocketError("");
+      socket.emit("join-room", { room: roomId, username });
+      // The server acknowledges membership only after socket.join has completed.
     };
 
     const onConnectError = (err) => {
@@ -482,13 +438,20 @@ useEffect(() => {
     };
 
     socket.on("connect", onConnect);
+    socket.on("room-joined", onJoinRoom);
     socket.on("connect_error", onConnectError);
+
+    socket.auth = { token: localStorage.getItem("token") };
+    if (!socket.connected) socket.connect();
+    else onConnect();
 
     return () => {
       socket.off("connect", onConnect);
+      socket.off("room-joined", onJoinRoom);
       socket.off("connect_error", onConnectError);
+      socket.disconnect();
     };
-  }, [roomId, socket]);
+  }, [roomId, socket, username]);
 
   /** Fix bad sessionStorage userId (e.g. "[object Object]") so left/right chat works. */
   useEffect(() => {
@@ -659,6 +622,14 @@ useEffect(() => {
   // }, []);
 
   const startvideo = async () => {
+    if (!socket.connected || !joined.current) {
+      setSocketError("Connecting to the room. Please try the call again in a moment.");
+      return;
+    }
+    if ((users?.length || 0) < 2) {
+      setMessages((prev) => [...prev, { system: true, text: "Waiting for someone to join before starting a call." }]);
+      return;
+    }
     setCallOverlayOpen(true);
     setCallPhase("outgoing");
     awaitingAnswerRef.current = true;
@@ -719,7 +690,7 @@ useEffect(() => {
    );
 
 
-      socket.emit("answer", answer);
+      socket.emit("answer", { room: roomId, description: answer });
       setCallPhase("connected");
     } catch (err) {
       console.error(err);

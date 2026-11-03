@@ -144,6 +144,8 @@ io.on("connection",(socket)=>{
 
       socket.join(msg.room);
 
+      socket.emit("room-joined", { room: msg.room });
+
       // ONLINE USERS
       if(!onlineUsers[msg.room]){
 
@@ -260,10 +262,12 @@ io.on("connection",(socket)=>{
    // WEBRTC OFFER
 socket.on(
    "offer",
-   (offer)=>{
-
+   (payload)=>{
+      const room = payload?.room || socket.room;
+      const offer = payload?.description || payload;
+      if (!room || room !== socket.room) return;
       socket.broadcast
-      .to(socket.room)
+      .to(room)
       .emit(
          "offer",
          offer
@@ -275,10 +279,12 @@ socket.on(
 // WEBRTC ANSWER
 socket.on(
    "answer",
-   (answer)=>{
-
+   (payload)=>{
+      const room = payload?.room || socket.room;
+      const answer = payload?.description || payload;
+      if (!room || room !== socket.room) return;
       socket.broadcast
-      .to(socket.room)
+      .to(room)
       .emit(
          "answer",
          answer
